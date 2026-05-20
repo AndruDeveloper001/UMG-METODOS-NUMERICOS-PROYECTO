@@ -1,154 +1,166 @@
 <div class="page">
   <div class="page-header">
-    <div class="page-badge">Métodos Iterativos</div>
+    <span class="page-badge jacobi">Métodos Iterativos</span>
     <h1>Método de Jacobi</h1>
-    <p>Resolución de sistemas lineales Ax = b mediante iteración. Ingresa los coeficientes de la matriz aumentada [A|b].</p>
+    <p>Resolución de sistemas lineales Ax = b. Ingresa la matriz aumentada [A|b] y los parámetros de iteración.</p>
   </div>
 
   <div class="layout">
-    <!-- INPUT PANEL -->
-    <div class="panel input-panel">
 
-      <!-- Size selector -->
+    <!-- ═══ INPUT PANEL ═══ -->
+    <div class="panel">
+
       <div class="panel-section">
         <div class="section-label">Tamaño del sistema (n × n)</div>
-        <div class="size-picker">
+        <div class="pill-picker">
           @for (s of sizes; track s) {
-            <button class="size-btn" [class.active]="n() === s" (click)="setSize(s)">
-              {{ s }}×{{ s }}
-            </button>
+            <button class="pill" [class.active]="n() === s" (click)="setSize(s)">{{ s }}×{{ s }}</button>
           }
         </div>
       </div>
 
-      <!-- Matrix input -->
       <div class="panel-section">
         <div class="section-label">
-          Coeficientes — Matriz A y vector b
-          <span class="label-hint">Columna azul = b (términos independientes)</span>
+          Matriz A &amp; vector b
+          <span class="label-sub">(columna azul = términos independientes)</span>
         </div>
-        <div class="matrix-container">
-          <div class="matrix-header">
-            <div class="cell-head">Ec.</div>
+        <div class="matrix-wrap">
+          <div class="matrix-grid" [style.grid-template-columns]="'28px repeat(' + (n()+1) + ', 1fr)'">
+            <!-- header -->
+            <div></div>
             @for (j of cols(); track j) {
-              <div class="cell-head">x<sub>{{ j + 1 }}</sub></div>
+              <div class="col-head">x<sub>{{ j+1 }}</sub></div>
             }
-            <div class="cell-head b-col">b</div>
-          </div>
+            <div class="col-head b-head">b</div>
 
-          @for (i of rows(); track i) {
-            <div class="matrix-row">
-              <div class="row-label">{{ i + 1 }}</div>
+            <!-- rows -->
+            @for (i of rows(); track i) {
+              <div class="row-head">{{ i+1 }}</div>
               @for (j of cols(); track j) {
-                <div class="cell-wrap">
-                  <input
-                    type="text"
-                    class="matrix-input"
-                    [class.has-error]="hasError('a_' + i + '_' + j)"
-                    [value]="getA(i, j)"
-                    (input)="setA(i, j, $any($event.target).value)"
-                    (focus)="$any($event.target).select()"
-                    autocomplete="off"
-                  >
-                </div>
+                <input class="cell-input" [class.err]="hasError('a_'+i+'_'+j)"
+                       [value]="getA(i,j)"
+                       (input)="setA(i, j, $any($event.target).value)"
+                       (focus)="$any($event.target).select()" autocomplete="off">
               }
-              <div class="cell-wrap">
-                <input
-                  type="text"
-                  class="matrix-input b-input"
-                  [class.has-error]="hasError('b_' + i)"
-                  [value]="getB(i)"
-                  (input)="setB(i, $any($event.target).value)"
-                  (focus)="$any($event.target).select()"
-                  autocomplete="off"
-                >
-              </div>
-            </div>
-          }
+              <input class="cell-input b-cell" [class.err]="hasError('b_'+i)"
+                     [value]="getB(i)"
+                     (input)="setB(i, $any($event.target).value)"
+                     (focus)="$any($event.target).select()" autocomplete="off">
+            }
+          </div>
         </div>
+        <p class="hint-text">Tip: el método requiere que la diagonal sea dominante para garantizar convergencia.</p>
       </div>
 
-      <!-- Parameters -->
       <div class="panel-section">
-        <div class="section-label">Parámetros de iteración</div>
-        <div class="params-row">
+        <div class="section-label">Parámetros</div>
+        <div class="fields-row">
           <div class="field">
             <label>Tolerancia (ε)</label>
-            <input type="text" [class.has-error]="hasError('tol')"
-                   [(ngModel)]="tolerance" (ngModelChange)="validateCell('tol', $event)"
-                   placeholder="ej: 0.0001">
-            <span class="field-hint">Error máximo aceptable entre iteraciones</span>
-            @if (hasError('tol')) { <span class="field-error">{{ errors()['tol'] }}</span> }
+            <input type="text" [(ngModel)]="tolerance" [class.err]="hasError('tol')"
+                   (ngModelChange)="validateCell('tol',$event)" placeholder="0.0001">
+            @if (hasError('tol')) { <span class="field-err">{{ errors()['tol'] }}</span> }
+            <span class="field-hint">Error máximo entre iteraciones</span>
           </div>
           <div class="field">
-            <label>Iteraciones máximas</label>
-            <input type="text" [class.has-error]="hasError('maxIt')"
-                   [(ngModel)]="maxIterations" (ngModelChange)="validateCell('maxIt', $event)"
-                   placeholder="ej: 50">
-            @if (hasError('maxIt')) { <span class="field-error">{{ errors()['maxIt'] }}</span> }
+            <label>Iteraciones máx.</label>
+            <input type="text" [(ngModel)]="maxIterations" [class.err]="hasError('maxIt')"
+                   (ngModelChange)="validateCell('maxIt',$event)" placeholder="50">
+            @if (hasError('maxIt')) { <span class="field-err">{{ errors()['maxIt'] }}</span> }
           </div>
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="btn-row">
-        <button class="btn primary" (click)="solve()">
-          ▶ Resolver
-        </button>
-        <button class="btn" (click)="loadExample()">
-          ✦ Ejemplo
-        </button>
-        <button class="btn" (click)="reset()">
-          ↺ Limpiar
-        </button>
+      <div class="panel-section actions">
+        <button class="btn primary-j" (click)="solve()">▶ Resolver</button>
+        <button class="btn secondary" (click)="loadExample()">✦ Ejemplo</button>
+        <button class="btn secondary" (click)="reset()">↺ Limpiar</button>
       </div>
     </div>
 
-    <!-- OUTPUT PANEL -->
+    <!-- ═══ OUTPUT PANEL ═══ -->
     @if (result()) {
       <div class="panel output-panel">
-        <div class="panel-section">
-          <div class="section-label">Procedimiento paso a paso</div>
 
+        <!-- Steps -->
+        <div class="panel-section">
+          <div class="section-label">Procedimiento</div>
           @for (step of result()!.steps; track $index) {
             <div class="step-card" [ngClass]="step.type">
               <div class="step-title">{{ step.title }}</div>
-              <div class="step-body" [innerHTML]="step.body"></div>
+              @for (line of step.lines; track $index) {
+                <div class="step-line" [innerHTML]="line"></div>
+              }
             </div>
           }
         </div>
 
-        <!-- Iteration table -->
+        <!-- Iteration table with expandable details -->
         @if (result()!.iterations.length > 0) {
           <div class="panel-section">
-            <div class="section-label">Tabla de iteraciones</div>
+            <div class="section-label">
+              Tabla de iteraciones
+              <span class="label-sub">Haz clic en una fila para ver el cálculo completo</span>
+            </div>
             <div class="table-wrap">
               <table class="iter-table">
                 <thead>
                   <tr>
-                    <th>Iter.</th>
+                    <th class="tc">Iter.</th>
                     @for (j of cols(); track j) {
-                      <th>x<sub>{{ j + 1 }}</sub></th>
+                      <th>x<sub>{{ j+1 }}</sub></th>
                     }
                     <th>Error máx.</th>
-                    <th>Estado</th>
+                    <th class="tc">Estado</th>
+                    <th class="tc"></th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (row of result()!.iterations; track row.iter) {
-                    <tr [class.last-iter]="row.iter === result()!.iterCount">
-                      <td class="iter-num">{{ row.iter }}</td>
+                    <tr class="iter-row" [class.last-row]="row.iter === result()!.iterCount && result()!.converged"
+                        (click)="toggleIter(row.iter)">
+                      <td class="tc mono dim">{{ row.iter }}</td>
                       @for (v of row.values; track $index) {
-                        <td class="mono">{{ fmt(v, 6) }}</td>
+                        <td class="mono">{{ fmt(v, 5) }}</td>
                       }
                       <td class="mono">{{ fmtE(row.error) }}</td>
-                      <td>
-                        <span class="badge" [class.ok]="row.iter === result()!.iterCount && result()!.converged"
-                              [class.pending]="!(row.iter === result()!.iterCount && result()!.converged)">
+                      <td class="tc">
+                        <span class="badge" [class.ok]="row.iter === result()!.iterCount && result()!.converged">
                           {{ row.iter === result()!.iterCount && result()!.converged ? '✓' : '…' }}
                         </span>
                       </td>
+                      <td class="tc expand-icon">{{ expandedIter() === row.iter ? '▲' : '▼' }}</td>
                     </tr>
+
+                    <!-- Expanded detail per iteration -->
+                    @if (expandedIter() === row.iter) {
+                      <tr class="detail-row">
+                        <td [attr.colspan]="n() + 4">
+                          <div class="iter-detail">
+                            <div class="detail-title">Iteración {{ row.iter }} — cálculo variable a variable</div>
+                            @for (d of row.detail; track d.varIdx) {
+                              <div class="detail-block">
+                                <div class="detail-var">x<sub>{{ d.varIdx+1 }}</sub><sup>({{ row.iter }})</sup></div>
+                                <div class="detail-steps">
+                                  <div class="detail-line">
+                                    <span class="dl-label">Numerador:</span>
+                                    <span class="dl-expr mono" [innerHTML]="d.numerator"></span>
+                                  </div>
+                                  <div class="detail-line">
+                                    <span class="dl-label">Divisor:</span>
+                                    <span class="dl-expr mono">{{ d.denominator }}</span>
+                                  </div>
+                                  <div class="detail-line result-line">
+                                    <span class="dl-label">Resultado:</span>
+                                    <span class="dl-result mono">{{ fmt(d.result, 8) }}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
                   }
                 </tbody>
               </table>
@@ -156,20 +168,22 @@
           </div>
         }
 
-        <!-- Solution box -->
+        <!-- Solution -->
         @if (result()!.solution) {
-          <div class="solution-box" [class.converged]="result()!.converged" [class.not-converged]="!result()!.converged">
-            <div class="solution-title">
-              {{ result()!.converged ? 'Solución encontrada' : 'Aproximación (no convergió)' }}
+          <div class="solution-box" [class.conv]="result()!.converged">
+            <div class="sol-title">
+              {{ result()!.converged ? '✓ Solución encontrada' : '⚠ Aproximación (no convergió)' }}
             </div>
             @for (v of result()!.solution!; track $index) {
-              <div class="solution-row">
-                <span class="sol-label">x<sub>{{ $index + 1 }}</sub></span>
+              <div class="sol-row">
+                <span class="sol-label">x<sub>{{ $index+1 }}</sub></span>
+                <span class="sol-eq mono">=</span>
                 <span class="sol-val mono">{{ fmt(v, 8) }}</span>
               </div>
             }
           </div>
         }
+
       </div>
     }
   </div>

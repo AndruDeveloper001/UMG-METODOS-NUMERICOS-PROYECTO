@@ -1,57 +1,27 @@
 <div class="home-page">
   <div class="hero">
-    <div class="hero-badge">Curso Universitario</div>
-    <h1 class="hero-title">Métodos Numéricos</h1>
-    <p class="hero-subtitle">
-      Calculadora interactiva paso a paso para los métodos de Jacobi y Horner.
-      Ingresa tus datos, visualiza cada operación y comprende el proceso completo.
-    </p>
+    <p class="hero-eyebrow">Curso Universitario · Métodos Numéricos</p>
+    <h1 class="hero-title">Calculadora Interactiva</h1>
+    <p class="hero-sub">Visualiza el procedimiento completo, paso a paso.</p>
   </div>
 
-  <div class="methods-grid">
-    <a routerLink="/jacobi" class="method-card">
-      <div class="method-icon jacobi-icon">J</div>
-      <div class="method-info">
+  <div class="cards">
+    <a routerLink="/jacobi" class="method-card jacobi">
+      <div class="card-icon">J</div>
+      <div class="card-body">
         <h2>Método de Jacobi</h2>
-        <p>Resolución iterativa de sistemas de ecuaciones lineales Ax = b. Soporta matrices hasta 5×5 con control de tolerancia e iteraciones.</p>
-        <ul class="method-features">
-          <li>Verificación diagonal dominante</li>
-          <li>Tabla de iteraciones con error</li>
-          <li>Explicación de cada paso</li>
-          <li>Fórmula iterativa mostrada</li>
-        </ul>
-        <span class="method-cta">Abrir módulo →</span>
+        <p>Sistemas lineales Ax = b</p>
       </div>
+      <span class="card-arrow">→</span>
     </a>
 
-    <a routerLink="/horner" class="method-card">
-      <div class="method-icon horner-icon">H</div>
-      <div class="method-info">
+    <a routerLink="/horner" class="method-card horner">
+      <div class="card-icon">H</div>
+      <div class="card-body">
         <h2>Regla de Horner</h2>
-        <p>Evaluación eficiente de polinomios mediante evaluación sintética anidada. Soporta polinomios hasta grado 6.</p>
-        <ul class="method-features">
-          <li>Coeficientes configurables</li>
-          <li>Tabla de operaciones por paso</li>
-          <li>Visualización del polinomio</li>
-          <li>Comparación de operaciones</li>
-        </ul>
-        <span class="method-cta">Abrir módulo →</span>
+        <p>Evaluación de polinomios P(x)</p>
       </div>
+      <span class="card-arrow">→</span>
     </a>
-  </div>
-
-  <div class="info-bar">
-    <div class="info-item">
-      <span class="info-icon">✓</span>
-      Validación de inputs en tiempo real
-    </div>
-    <div class="info-item">
-      <span class="info-icon">✓</span>
-      Paso a paso con explicación textual
-    </div>
-    <div class="info-item">
-      <span class="info-icon">✓</span>
-      Ejemplos precargados para practicar
-    </div>
   </div>
 </div>

@@ -2,8 +2,8 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: #0f172a;
-  border-bottom: 1px solid #1e293b;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .navbar-inner {
@@ -21,17 +21,16 @@
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  color: #f1f5f9;
-
+  color: var(--text-primary);
   &:hover .brand-icon { transform: rotate(15deg); }
 }
 
 .brand-icon {
-  font-size: 22px;
-  width: 36px;
-  height: 36px;
-  background: #2563eb;
-  border-radius: 8px;
+  font-size: 20px;
+  width: 34px;
+  height: 34px;
+  background: var(--accent-j);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -39,33 +38,22 @@
 }
 
 .brand-text {
-  font-size: 14px;
-  letter-spacing: .01em;
-  color: #94a3b8;
-
-  strong {
-    color: #f1f5f9;
-    font-weight: 600;
-    display: block;
-    line-height: 1;
-  }
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.2;
+  strong { color: var(--text-primary); font-weight: 600; display: block; }
 }
 
-.nav-links {
-  display: flex;
-  gap: 4px;
-}
+.nav-links { display: flex; gap: 4px; }
 
 .nav-link {
   padding: 6px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 13px;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--text-muted);
   text-decoration: none;
   transition: all .15s;
-  letter-spacing: .01em;
-
-  &:hover { background: #1e293b; color: #f1f5f9; }
-  &.active { background: #1e40af; color: #bfdbfe; }
+  &:hover  { background: var(--bg-raised); color: var(--text-primary); }
+  &.active { background: var(--accent-j-dim); color: var(--accent-j-text); }
 }

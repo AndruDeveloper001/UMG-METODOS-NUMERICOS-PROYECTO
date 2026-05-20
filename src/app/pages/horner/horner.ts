@@ -13,54 +13,41 @@ import { HornerService, HornerResult } from '../../services/horner';
 export class HornerComponent {
   degrees = [2, 3, 4, 5, 6];
   degree = signal(3);
-  coefficients = signal<string[]>(this.buildCoeffs(3));
+  coefficients = signal<string[]>(Array(4).fill('1'));
   xValue = signal('2');
   result = signal<HornerResult | null>(null);
   errors = signal<Record<string, string>>({});
 
   indices = computed(() => Array.from({ length: this.degree() + 1 }, (_, i) => i));
 
-  constructor(private horner: HornerService) {}
-
-  buildCoeffs(deg: number): string[] {
-    return Array(deg + 1).fill('1');
-  }
+  constructor(private svc: HornerService) {}
 
   setDegree(d: number) {
     this.degree.set(d);
-    this.coefficients.set(this.buildCoeffs(d));
-    this.result.set(null);
-    this.errors.set({});
+    this.coefficients.set(Array(d + 1).fill('1'));
+    this.result.set(null); this.errors.set({});
   }
 
-  getCoeff(i: number): string {
-    return this.coefficients()[i];
-  }
-
-  setCoeff(i: number, val: string) {
-    const c = [...this.coefficients()];
-    c[i] = val;
+  getCoeff(i: number) { return this.coefficients()[i]; }
+  setCoeff(i: number, v: string) {
+    const c = [...this.coefficients()]; c[i] = v;
     this.coefficients.set(c);
-    this.validateField(`c_${i}`, val);
+    this.validate(`c_${i}`, v);
   }
 
-  exponent(i: number): number {
-    return this.degree() - i;
+  exp(i: number) { return this.degree() - i; }
+
+  validate(key: string, val: string) {
+    const e = { ...this.errors() };
+    if (val.trim() === '' || val.trim() === '-') { delete e[key]; }
+    else if (isNaN(parseFloat(val.replace(',', '.')))) { e[key] = '!'; }
+    else { delete e[key]; }
+    this.errors.set(e);
   }
 
-  validateField(key: string, val: string) {
-    const errs = { ...this.errors() };
-    if (val.trim() === '' || val.trim() === '-') { delete errs[key]; }
-    else if (isNaN(parseFloat(val.replace(',', '.')))) { errs[key] = 'Inválido'; }
-    else { delete errs[key]; }
-    this.errors.set(errs);
-  }
+  hasError(k: string) { return !!this.errors()[k]; }
 
-  hasError(key: string): boolean {
-    return !!this.errors()[key];
-  }
-
-  parseNum(s: string): number | null {
+  parse(s: string): number | null {
     const v = parseFloat(s.replace(',', '.'));
     return isNaN(v) ? null : v;
   }
@@ -70,15 +57,13 @@ export class HornerComponent {
     setTimeout(() => {
       this.coefficients.set(['2', '-6', '2', '-1']);
       this.xValue.set('3');
-      this.result.set(null);
-    }, 10);
+    });
   }
 
   reset() {
-    this.coefficients.set(this.buildCoeffs(this.degree()));
+    this.coefficients.set(Array(this.degree() + 1).fill('1'));
     this.xValue.set('2');
-    this.result.set(null);
-    this.errors.set({});
+    this.result.set(null); this.errors.set({});
   }
 
   evaluate() {
@@ -86,18 +71,15 @@ export class HornerComponent {
     const coeffs: number[] = [];
 
     for (let i = 0; i <= this.degree(); i++) {
-      const v = this.parseNum(this.getCoeff(i));
-      if (v === null) { errs[`c_${i}`] = 'Requerido'; }
-      else coeffs.push(v);
+      const v = this.parse(this.getCoeff(i));
+      if (v === null) { errs[`c_${i}`] = '!'; } else { coeffs.push(v); }
     }
+    const x = this.parse(this.xValue());
+    if (x === null) { errs['x'] = 'Inválido'; }
 
-    const x = this.parseNum(this.xValue());
-    if (x === null) { errs['x'] = 'Valor x inválido'; }
-
-    if (Object.keys(errs).length > 0) { this.errors.set(errs); return; }
-
-    this.result.set(this.horner.evaluate(coeffs, x!));
+    if (Object.keys(errs).length) { this.errors.set(errs); return; }
+    this.result.set(this.svc.evaluate(coeffs, x!));
   }
 
-  fmt(v: number, d = 6): string { return v.toFixed(d); }
+  fmt(v: number, d = 6) { return Number(v).toFixed(d); }
 }
