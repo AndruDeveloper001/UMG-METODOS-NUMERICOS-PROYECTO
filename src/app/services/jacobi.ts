@@ -5,19 +5,19 @@ export type StepType = 'info' | 'success' | 'warning' | 'error' | 'iter' | 'subs
 export interface JacobiStep {
   type: StepType;
   title: string;
-  lines: string[];   // each line rendered as its own row
+  lines: string[];
 }
 
 export interface JacobiIteration {
   iter: number;
-  detail: IterDetail[];   // per-variable detail
+  detail: IterDetail[];
   values: number[];
   error: number;
 }
 
 export interface IterDetail {
-  varIdx: number;        // which x_i
-  numerator: string;     // human-readable formula evaluation
+  varIdx: number;
+  numerator: string;
   denominator: number;
   result: number;
 }
@@ -39,7 +39,6 @@ export class JacobiService {
     const steps: JacobiStep[] = [];
     const iterHistory: JacobiIteration[] = [];
 
-    /* ── 1. Diagonal zero check ── */
     for (let i = 0; i < n; i++) {
       if (A[i][i] === 0) {
         steps.push({ type: 'error', title: 'Error: elemento diagonal nulo',
@@ -52,7 +51,6 @@ export class JacobiService {
       }
     }
 
-    /* ── 2. Print system ── */
     const sysLines: string[] = [];
     for (let i = 0; i < n; i++) {
       let eq = '';
@@ -65,7 +63,6 @@ export class JacobiService {
     }
     steps.push({ type: 'info', title: 'Sistema ingresado [A|b]', lines: sysLines });
 
-    /* ── 3. Diagonal dominance ── */
     const ddLines: string[] = [];
     let allDom = true;
     for (let i = 0; i < n; i++) {
@@ -81,7 +78,6 @@ export class JacobiService {
       : 'Conclusión: El sistema NO es estrictamente diagonalmente dominante. El método podría no converger.');
     steps.push({ type: allDom ? 'success' : 'warning', title: 'Verificación de diagonal dominante', lines: ddLines });
 
-    /* ── 4. Iteration formulas ── */
     const fLines: string[] = ['Para cada iteración k, se calcula x<sub>i</sub><sup>(k+1)</sup> usando los valores de la iteración anterior x<sup>(k)</sup>:'];
     for (let i = 0; i < n; i++) {
       let num = `${b[i]}`;
@@ -94,7 +90,6 @@ export class JacobiService {
     }
     steps.push({ type: 'info', title: 'Fórmulas iterativas de Jacobi', lines: fLines });
 
-    /* ── 5. Initial vector ── */
     const x0 = new Array(n).fill(0);
     steps.push({ type: 'info', title: 'Vector inicial x⁽⁰⁾',
       lines: [
@@ -103,7 +98,6 @@ export class JacobiService {
       ]
     });
 
-    /* ── 6. Iterate ── */
     let x = [...x0];
     let converged = false;
     let iterDone = 0;
@@ -113,7 +107,6 @@ export class JacobiService {
       const detail: IterDetail[] = [];
 
       for (let i = 0; i < n; i++) {
-        // Build numerator string with substituted values
         let numVal = b[i];
         let numStr = `${b[i]}`;
         for (let j = 0; j < n; j++) {

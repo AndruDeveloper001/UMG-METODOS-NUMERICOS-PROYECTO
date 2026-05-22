@@ -11,9 +11,9 @@ export interface HornerTableRow {
   step: number;
   label: string;
   coeff: number;
-  multExpr: string | null;   // "b × x" expressed as "2.000 × 3"
+  multExpr: string | null;
   multVal: number | null;
-  addExpr: string | null;    // "b×x + aᵢ" expressed
+  addExpr: string | null;
   accumulated: number;
 }
 
@@ -36,7 +36,6 @@ export class HornerService {
     const poly = this.formatPolynomial(coeffs, n);
     const nested = this.buildNestedForm(coeffs, n);
 
-    /* ── 1. Polynomial ── */
     steps.push({ type: 'info', title: 'Polinomio ingresado',
       lines: [
         `P(x) = ${poly}`,
@@ -45,7 +44,6 @@ export class HornerService {
       ]
     });
 
-    /* ── 2. Nested form ── */
     steps.push({ type: 'info', title: 'Paso 1 — Forma anidada (Horner)',
       lines: [
         'Se reescribe P(x) agrupando de adentro hacia afuera para minimizar operaciones:',
@@ -54,13 +52,11 @@ export class HornerService {
       ]
     });
 
-    /* ── 3. Coefficient list ── */
     const coeffLine = coeffs.map((c, i) => `a<sub>${n-i}</sub> = ${c}`).join(' &nbsp;|&nbsp; ');
     steps.push({ type: 'info', title: 'Paso 2 — Lista de coeficientes (mayor a menor grado)',
       lines: [coeffLine]
     });
 
-    /* ── 4. Initialization ── */
     const b0 = coeffs[0];
     steps.push({ type: 'info', title: 'Paso 3 — Inicialización',
       lines: [
@@ -75,7 +71,6 @@ export class HornerService {
       accumulated: b0
     });
 
-    /* ── 5. Horner iterations ── */
     let b = b0;
     for (let i = 1; i < coeffs.length; i++) {
       const ai = coeffs[i];
@@ -103,7 +98,6 @@ export class HornerService {
       b = acc;
     }
 
-    /* ── 6. Result ── */
     steps.push({ type: 'success', title: 'Resultado final',
       lines: [
         `El último valor acumulado es el resultado de P(${x}):`,
@@ -132,7 +126,6 @@ export class HornerService {
   }
 
   private buildNestedForm(coeffs: number[], degree: number): string {
-    // Build inside-out representation as string
     let form = `${coeffs[0]}`;
     for (let i = 1; i < coeffs.length; i++) {
       const c = coeffs[i];
