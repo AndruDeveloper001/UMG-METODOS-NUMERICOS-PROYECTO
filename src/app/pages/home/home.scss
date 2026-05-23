@@ -5,7 +5,13 @@
   text-align: center;
 }
 
-.hero { margin-bottom: 2.5rem; }
+.hero {
+  margin-bottom: 2.5rem;
+  & img {
+    position: relative;
+    width: 100px;
+  }
+}
 
 .hero-eyebrow {
   font-size: 11px;
