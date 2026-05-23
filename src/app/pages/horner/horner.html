@@ -1,8 +1,11 @@
 <div class="page">
   <div class="page-header">
-    <!-- <span class="page-badge horner">Evaluación de Polinomios</span> -->
+    <span class="page-badge horner">Evaluación de Polinomios</span>
     <h1>Regla de Horner</h1>
-    <!-- <p>Evaluación eficiente de P(x) mediante la forma anidada. Ingresa los coeficientes de mayor a menor grado.</p> -->
+    <p>
+      División sintética de P(x) entre (x − a). Obtén el valor P(a), el cociente Q(x),
+      el residuo R y determina si <em>a</em> es raíz de P(x).
+    </p>
   </div>
 
   <div class="layout">
@@ -14,13 +17,18 @@
         <div class="section-label">Grado del polinomio</div>
         <div class="pill-picker">
           @for (d of degrees; track d) {
-            <button class="pill" [class.active]="degree() === d" (click)="setDegree(d)">Grado {{ d }}</button>
+            <button class="pill" [class.active]="degree() === d" (click)="setDegree(d)">
+              Grado {{ d }}
+            </button>
           }
         </div>
       </div>
 
       <div class="panel-section">
-        <div class="section-label">Coeficientes — a<sub>n</sub> hasta a<sub>0</sub></div>
+        <div class="section-label">
+          Coeficientes &nbsp;
+          <span class="label-sub">a<sub>n</sub> (mayor grado) → a<sub>0</sub> (término independiente)</span>
+        </div>
         <div class="coeffs-row">
           @for (i of indices(); track i) {
             <div class="coeff-item">
@@ -29,10 +37,13 @@
                 @else if (exp(i) === 1) { x }
                 @else { cte }
               </div>
-              <input class="coeff-inp" [class.err]="hasError('c_'+i)"
-                     [value]="getCoeff(i)"
-                     (input)="setCoeff(i, $any($event.target).value)"
-                     (focus)="$any($event.target).select()" autocomplete="off">
+              <input
+                class="coeff-inp" [class.err]="hasError('c_'+i)"
+                [value]="getCoeff(i)"
+                (input)="setCoeff(i, $any($event.target).value)"
+                (focus)="$any($event.target).select()"
+                autocomplete="off"
+              >
             </div>
             @if (i < indices().length - 1) {
               <div class="coeff-sep">+</div>
@@ -40,7 +51,7 @@
           }
         </div>
 
-        <!-- Live polynomial preview -->
+        <!-- Polynomial preview after evaluate -->
         @if (result()) {
           <div class="poly-preview">
             <span class="preview-label">P(x) =</span>
@@ -50,18 +61,28 @@
       </div>
 
       <div class="panel-section">
-        <div class="section-label">Valor a evaluar</div>
+        <div class="section-label">Valor a evaluar (divisor)</div>
         <div class="field-inline">
-          <label>x =</label>
-          <input type="text" [(ngModel)]="xValue" [class.err]="hasError('x')"
-                 (ngModelChange)="validate('x', $event)" placeholder="ej: 2" style="max-width:140px">
-          @if (hasError('x')) { <span class="field-err">{{ errors()['x'] }}</span> }
+          <span class="divisor-label">(x −</span>
+          <input
+            type="text" [(ngModel)]="xValue"
+            [class.err]="hasError('x')"
+            (ngModelChange)="validate('x', $event)"
+            placeholder="a"
+            style="max-width:100px"
+          >
+          <span class="divisor-label">)</span>
         </div>
+        <p class="hint-text">
+          Se divide P(x) entre el binomio (x − a). El residuo R = P(a).
+        </p>
+        @if (hasError('x')) { <span class="field-err">{{ errors()['x'] }}</span> }
       </div>
 
       <div class="panel-section actions">
         <button class="btn primary-h" (click)="evaluate()">▶ Evaluar</button>
-        <button class="btn secondary" (click)="loadExample()">✦ Ejemplo</button>
+        <button class="btn secondary" (click)="loadExample()">✦ Ejemplo (R ≠ 0)</button>
+        <button class="btn secondary" (click)="loadExampleRoot()">✦ Ejemplo (raíz)</button>
         <button class="btn secondary" (click)="reset()">↺ Limpiar</button>
       </div>
     </div>
@@ -70,12 +91,30 @@
     @if (result()) {
       <div class="panel output-panel">
 
-        <!-- Steps -->
+        <!-- Quick summary chips -->
+        <div class="summary-bar">
+          <div class="chip">
+            <span class="chip-label">P({{ xValue() }})</span>
+            <span class="chip-val mono">{{ fmt(result()!.value, 6) }}</span>
+          </div>
+          <div class="chip">
+            <span class="chip-label">Residuo R</span>
+            <span class="chip-val mono" [class.zero]="result()!.isRoot">
+              {{ fmt(result()!.residue, 6) }}
+            </span>
+          </div>
+          <div class="chip" [class.chip-root]="result()!.isRoot" [class.chip-noroot]="!result()!.isRoot">
+            <span class="chip-label">¿Raíz?</span>
+            <span class="chip-val">{{ result()!.isRoot ? '✓ Sí' : '✗ No' }}</span>
+          </div>
+        </div>
+
+        <!-- Step-by-step procedure -->
         <div class="panel-section">
           <div class="section-label">Procedimiento completo</div>
           @for (step of result()!.steps; track $index) {
             <div class="step-card" [ngClass]="step.type">
-              <div class="step-title">{{ step.title }}</div>
+              <div class="step-title" [innerHTML]="step.title"></div>
               @for (line of step.lines; track $index) {
                 <div class="step-line" [innerHTML]="line"></div>
               }
@@ -83,48 +122,154 @@
           }
         </div>
 
-        <!-- Operations table -->
+        <!-- Synthetic division table -->
         <div class="panel-section">
-          <div class="section-label">Tabla de operaciones sintéticas</div>
+          <div class="section-label">Tabla de división sintética</div>
           <p class="table-note">
-            Algoritmo: b<sub>0</sub> = a<sub>n</sub> &nbsp;|&nbsp;
-            b<sub>i</sub> = b<sub>i-1</sub> × x + a<sub>n-i</sub> &nbsp;|&nbsp;
-            P(x) = b<sub>{{ degree() }}</sub>
+            Fila superior: coeficientes de P(x) &nbsp;|&nbsp;
+            Fila media: productos b × {{ xValue() }} &nbsp;|&nbsp;
+            Fila inferior: coeficientes de Q(x) + Residuo R
           </p>
+
           <div class="table-wrap">
-            <table class="ops-table">
+            <table class="synth-table">
               <thead>
                 <tr>
-                  <th class="tl">Paso</th>
-                  <th>Coef. aᵢ</th>
-                  <th>b<sub>prev</sub> × x</th>
-                  <th>+ aᵢ</th>
-                  <th class="acc-head">Acum. b</th>
+                  <th class="divisor-cell" rowspan="3">
+                    x = {{ xValue() }}
+                  </th>
+                  @for (row of result()!.tableRows; track row.step) {
+                    <th [class.residue-head]="row.isResidue">
+                      @if (!row.isResidue) { b<sub>{{ row.step }}</sub> }
+                      @else { R }
+                    </th>
+                  }
                 </tr>
               </thead>
               <tbody>
-                @for (row of result()!.tableRows; track row.step) {
-                  <tr [class.init-row]="row.step === 0"
-                      [class.last-row]="row.step === result()!.tableRows.length - 1">
-                    <td class="tl step-lbl">{{ row.label }}</td>
-                    <td class="mono">{{ fmt(row.coeff, 4) }}</td>
-                    <td class="mono dim">{{ row.multExpr ?? '—' }}</td>
-                    <td class="mono dim">{{ row.addExpr  ?? '—' }}</td>
-                    <td class="mono acc-val">{{ fmt(row.accumulated, 6) }}</td>
-                  </tr>
-                }
+                <!-- Row 1: original coefficients -->
+                <tr class="coeff-row">
+                  @for (row of result()!.tableRows; track row.step) {
+                    <td class="mono" [class.residue-col]="row.isResidue">
+                      {{ fmt(row.coeff, 4) }}
+                    </td>
+                  }
+                </tr>
+                <!-- Row 2: products b × x (empty for first) -->
+                <tr class="mult-row">
+                  @for (row of result()!.tableRows; track row.step) {
+                    <td class="mono dim" [class.residue-col]="row.isResidue">
+                      @if (row.multExpr) { {{ row.multExpr }} }
+                      @else { — }
+                    </td>
+                  }
+                </tr>
+                <!-- Row 3: accumulated values (Q coeffs + R) -->
+                <tr class="accum-row">
+                  @for (row of result()!.tableRows; track row.step) {
+                    <td class="mono" [class.residue-col]="row.isResidue" [class.residue-val]="row.isResidue">
+                      {{ fmt(row.accumulated, 4) }}
+                    </td>
+                  }
+                </tr>
+                <!-- Row 4: labels -->
+                <tr class="label-row">
+                  @for (row of result()!.tableRows; track row.step) {
+                    <td class="row-lbl" [class.residue-col]="row.isResidue">
+                      {{ row.label }}
+                    </td>
+                  }
+                </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Result -->
-        <div class="result-box">
-          <div class="res-title">Resultado de la evaluación</div>
-          <div class="res-poly" [innerHTML]="'P(x) = ' + result()!.polynomial"></div>
-          <div class="res-eq">
-            P(<strong>{{ xValue() }}</strong>) = <span class="res-val">{{ fmt(result()!.value, 8) }}</span>
+        <!-- Quotient + Residue section -->
+        <div class="panel-section">
+          <div class="section-label">Cociente Q(x) y Residuo R</div>
+
+          <div class="qr-grid">
+            <div class="qr-card quotient-card">
+              <div class="qr-title">Cociente Q(x)</div>
+              <div class="qr-poly" [innerHTML]="result()!.quotientPoly"></div>
+              <div class="qr-degree">Grado {{ degree() - 1 }}</div>
+            </div>
+            <div class="qr-card residue-card" [class.zero-res]="result()!.isRoot">
+              <div class="qr-title">Residuo R</div>
+              <div class="qr-val mono">{{ fmt(result()!.residue, 8) }}</div>
+              <div class="qr-degree">
+                @if (result()!.isRoot) { R = 0 → raíz exacta }
+                @else { R = P({{ xValue() }}) }
+              </div>
+            </div>
           </div>
+
+          <!-- Division identity -->
+          <div class="identity-box">
+            <div class="identity-label">Identidad de la división polinomial:</div>
+            <div class="identity-eq">
+              P(x) &nbsp;=&nbsp;
+              <span class="id-quotient" [innerHTML]="'Q(x)'"></span>
+              &nbsp;·&nbsp; (x − {{ xValue() }}) &nbsp;+&nbsp; R
+            </div>
+            <div class="identity-eq identity-expanded">
+              P(x) &nbsp;=&nbsp;
+              <span [innerHTML]="'(' + result()!.quotientPoly + ')'"></span>
+              &nbsp;·&nbsp; (x − {{ xValue() }}) &nbsp;+&nbsp;
+              <span class="mono">{{ fmt(result()!.residue, 6) }}</span>
+            </div>
+          </div>
+
+          <!-- Quotient terms breakdown -->
+          <div class="quotient-terms">
+            <div class="qt-title">Coeficientes del cociente Q(x):</div>
+            <div class="qt-row">
+              @for (term of result()!.quotientTerms; track term.exp) {
+                <div class="qt-chip">
+                  <span class="qt-exp">
+                    @if (term.exp > 1) { x<sup>{{ term.exp }}</sup> }
+                    @else if (term.exp === 1) { x }
+                    @else { cte }
+                  </span>
+                  <span class="qt-coeff mono">{{ fmt(term.coeff, 4) }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Final result box -->
+        <div class="result-box" [class.root-box]="result()!.isRoot">
+          <div class="res-title">
+            {{ result()!.isRoot ? '✓ x = ' + xValue() + ' es raíz de P(x)' : 'Resultado de la evaluación' }}
+          </div>
+          <div class="res-rows">
+            <div class="res-row">
+              <span class="res-label">P(x)</span>
+              <span class="res-poly mono" [innerHTML]="result()!.polynomial"></span>
+            </div>
+            <div class="res-row">
+              <span class="res-label">P({{ xValue() }})</span>
+              <span class="res-val mono">{{ fmt(result()!.value, 8) }}</span>
+            </div>
+            <div class="res-row">
+              <span class="res-label">Q(x)</span>
+              <span class="res-poly mono" [innerHTML]="result()!.quotientPoly"></span>
+            </div>
+            <div class="res-row">
+              <span class="res-label">R</span>
+              <span class="res-val mono" [class.zero]="result()!.isRoot">
+                {{ fmt(result()!.residue, 8) }}
+              </span>
+            </div>
+          </div>
+          @if (result()!.isRoot) {
+            <div class="factored-note">
+              Factorización: &nbsp;
+              <span class="mono" [innerHTML]="'P(x) = (' + result()!.quotientPoly + ') · (x − ' + xValue() + ')'"></span>
+            </div>
+          }
         </div>
 
       </div>

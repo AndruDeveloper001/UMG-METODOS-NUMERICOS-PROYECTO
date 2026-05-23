@@ -15,100 +15,214 @@ export interface HornerTableRow {
   multVal: number | null;
   addExpr: string | null;
   accumulated: number;
+  isResidue: boolean;   // último elemento = residuo
+}
+
+/** Coeficientes del polinomio cociente Q(x) */
+export interface QuotientTerm {
+  exp: number;
+  coeff: number;
+  formatted: string;  // ej: "2x²"
 }
 
 export interface HornerResult {
   steps: HornerStep[];
   tableRows: HornerTableRow[];
-  value: number;
+  quotientTerms: QuotientTerm[];
+  quotientPoly: string;      // Q(x) formateado
+  residue: number;           // R
+  value: number;             // P(x) = valor evaluado = R cuando x es raíz
   polynomial: string;
   nestedForm: string;
+  isRoot: boolean;           // R ≈ 0 → x es raíz
+  divisionIdentity: string;  // P(x) = Q(x)·(x − a) + R
 }
 
 @Injectable({ providedIn: 'root' })
 export class HornerService {
 
   evaluate(coeffs: number[], x: number): HornerResult {
-    const n = coeffs.length - 1;
+    const n = coeffs.length - 1;   // grado de P(x)
     const steps: HornerStep[] = [];
     const tableRows: HornerTableRow[] = [];
 
-    const poly = this.formatPolynomial(coeffs, n);
+    const poly   = this.formatPolynomial(coeffs, n);
     const nested = this.buildNestedForm(coeffs, n);
 
+    /* ────────────────────────────────────────────
+       PASO 1 — Presentación del polinomio
+    ──────────────────────────────────────────── */
     steps.push({ type: 'info', title: 'Polinomio ingresado',
       lines: [
         `P(x) = ${poly}`,
-        `Grado: ${n} &nbsp;·&nbsp; Número de coeficientes: ${coeffs.length}`,
-        `Valor a evaluar: x = ${x}`
+        `Grado: <strong>${n}</strong> &nbsp;·&nbsp; Número de coeficientes: <strong>${coeffs.length}</strong>`,
+        `Valor a evaluar / divisor: &nbsp; x = <strong>${x}</strong> &nbsp;→&nbsp; divisor (x − ${x})`
       ]
     });
 
-    steps.push({ type: 'info', title: 'Paso 1 — Forma anidada (Horner)',
+    /* ────────────────────────────────────────────
+       PASO 2 — Forma anidada
+    ──────────────────────────────────────────── */
+    steps.push({ type: 'info', title: 'Paso 1 — Forma anidada de Horner',
       lines: [
-        'Se reescribe P(x) agrupando de adentro hacia afuera para minimizar operaciones:',
+        'Se reescribe P(x) en forma anidada para reducir operaciones al mínimo:',
         `P(x) = ${nested}`,
-        `Esta forma requiere solo <strong>${n}</strong> multiplicaciones y <strong>${n}</strong> sumas (vs. ${n + (n*(n-1)/2)} operaciones en la forma estándar).`
+        `Ventaja: solo <strong>${n}</strong> multiplicaciones y <strong>${n}</strong> sumas ` +
+        `(la forma estándar necesita hasta ${n + (n*(n-1)/2)} operaciones).`
       ]
     });
 
-    const coeffLine = coeffs.map((c, i) => `a<sub>${n-i}</sub> = ${c}`).join(' &nbsp;|&nbsp; ');
-    steps.push({ type: 'info', title: 'Paso 2 — Lista de coeficientes (mayor a menor grado)',
-      lines: [coeffLine]
+    /* ────────────────────────────────────────────
+       PASO 3 — Lista de coeficientes
+    ──────────────────────────────────────────── */
+    const coeffLine = coeffs
+      .map((c, i) => `a<sub>${n - i}</sub> = ${c}`)
+      .join(' &nbsp;|&nbsp; ');
+    steps.push({ type: 'info', title: 'Paso 2 — Coeficientes ordenados (mayor → menor grado)',
+      lines: [
+        coeffLine,
+        'Estos son los valores que se usarán en la tabla de división sintética.'
+      ]
     });
 
-    const b0 = coeffs[0];
-    steps.push({ type: 'info', title: 'Paso 3 — Inicialización',
+    /* ────────────────────────────────────────────
+       PASO 4 — Inicialización
+    ──────────────────────────────────────────── */
+    steps.push({ type: 'info', title: 'Paso 3 — Inicialización del acumulador',
       lines: [
-        `El acumulador b se inicializa con el coeficiente líder a<sub>${n}</sub>:`,
-        `b<sub>0</sub> = a<sub>${n}</sub> = ${b0}`
+        `El primer coeficiente líder a<sub>${n}</sub> baja directo como primer valor acumulado:`,
+        `b<sub>0</sub> = a<sub>${n}</sub> = <strong>${coeffs[0]}</strong>`,
+        'Este b₀ es el primer coeficiente del cociente Q(x).'
       ]
     });
 
     tableRows.push({
-      step: 0, label: `Inicio — b₀ = a${n}`,
-      coeff: b0, multExpr: null, multVal: null, addExpr: null,
-      accumulated: b0
+      step: 0,
+      label: `b₀ = a${n}`,
+      coeff: coeffs[0],
+      multExpr: null, multVal: null, addExpr: null,
+      accumulated: coeffs[0],
+      isResidue: n === 0
     });
 
-    let b = b0;
+    /* ────────────────────────────────────────────
+       PASO 5 — División sintética iteración a iteración
+    ──────────────────────────────────────────── */
+    let b = coeffs[0];
+
     for (let i = 1; i < coeffs.length; i++) {
-      const ai = coeffs[i];
-      const exp = n - i;
+      const ai   = coeffs[i];
+      const expB = n - i;          // exponente del término en Q(x) o R
       const mult = b * x;
       const acc  = mult + ai;
 
-      const multExpr = `${this.fmt(b, 6)} × ${x}`;
-      const addExpr  = `${this.fmt(mult, 6)} + (${ai})`;
+      const isLast = i === coeffs.length - 1;
 
-      steps.push({ type: 'substep', title: `Paso ${i + 3} — Coeficiente a<sub>${exp}</sub> = ${ai}`,
+      const multExpr = `${this.fmt(b, 4)} × ${x}`;
+      const addExpr  = `${this.fmt(mult, 4)} + (${ai})`;
+
+      steps.push({
+        type: 'substep',
+        title: `Paso ${i + 3} — ${isLast ? 'Residuo R' : `Coeficiente b<sub>${i}</sub> (para x<sup>${expB}</sup>`})`,
         lines: [
-          `Multiplicar acumulador anterior por x: &nbsp; b × x = ${this.fmt(b,6)} × ${x} = <strong>${this.fmt(mult,6)}</strong>`,
-          `Sumar coeficiente a<sub>${exp}</sub>: &nbsp; ${this.fmt(mult,6)} + (${ai}) = <strong>${this.fmt(acc,6)}</strong>`,
-          `Nuevo acumulador: &nbsp; b<sub>${i}</sub> = ${this.fmt(acc, 8)}`
+          `Tomar acumulador anterior b<sub>${i-1}</sub> = ${this.fmt(b, 6)} y multiplicar por x = ${x}:`,
+          `&nbsp;&nbsp;&nbsp;b<sub>${i-1}</sub> × x &nbsp;=&nbsp; ${this.fmt(b,6)} × ${x} &nbsp;=&nbsp; <strong>${this.fmt(mult, 6)}</strong>`,
+          `Sumar el coeficiente a<sub>${n - i}</sub> = ${ai}:`,
+          `&nbsp;&nbsp;&nbsp;${this.fmt(mult,6)} + (${ai}) &nbsp;=&nbsp; <strong>${this.fmt(acc, 6)}</strong>`,
+          isLast
+            ? `Este es el <strong>residuo R = ${this.fmt(acc, 8)}</strong>. ` +
+              `(Si R = 0, entonces x = ${x} es raíz de P(x).)`
+            : `Nuevo coeficiente del cociente: &nbsp; b<sub>${i}</sub> = <strong>${this.fmt(acc, 8)}</strong> &nbsp;→ término x<sup>${expB}</sup> de Q(x)`
         ]
       });
 
       tableRows.push({
-        step: i, label: `Paso ${i} — exp ${exp}`,
-        coeff: ai, multExpr, multVal: mult, addExpr,
-        accumulated: acc
+        step: i,
+        label: isLast ? `R (residuo)` : `b${i} → x^${expB}`,
+        coeff: ai,
+        multExpr,
+        multVal: mult,
+        addExpr,
+        accumulated: acc,
+        isResidue: isLast
       });
 
       b = acc;
     }
 
-    steps.push({ type: 'success', title: 'Resultado final',
+    const residue = b;
+    const isRoot  = Math.abs(residue) < 1e-9;
+
+    /* ────────────────────────────────────────────
+       PASO 6 — Construir cociente Q(x)
+       Los primeros n valores acumulados (sin el último = R)
+    ──────────────────────────────────────────── */
+    const qCoeffs = tableRows.slice(0, tableRows.length - 1).map(r => r.accumulated);
+    const quotientTerms: QuotientTerm[] = qCoeffs.map((c, i) => {
+      const e = n - 1 - i;
+      return { exp: e, coeff: c, formatted: this.formatTerm(c, e) };
+    });
+    const quotientPoly = this.formatPolynomial(qCoeffs, n - 1);
+
+    /* ────────────────────────────────────────────
+       PASO 7 — Identidad de la división
+    ──────────────────────────────────────────── */
+    const signR = residue >= 0 ? `+ ${this.fmt(residue, 6)}` : `− ${this.fmt(Math.abs(residue), 6)}`;
+    const divisionIdentity = `P(x) = (${quotientPoly}) · (x − ${x}) ${signR}`;
+
+    steps.push({ type: 'info', title: `Paso ${coeffs.length + 3} — Cociente Q(x) y Residuo R`,
       lines: [
-        `El último valor acumulado es el resultado de P(${x}):`,
-        `P(${x}) = <strong>${this.fmt(b, 8)}</strong>`
+        'Los primeros <strong>n</strong> valores acumulados de la tabla forman los coeficientes de Q(x):',
+        `Q(x) = ${quotientPoly}`,
+        `Residuo: &nbsp; R = <strong>${this.fmt(residue, 8)}</strong>`,
+        'Verificación con la identidad de división:'
       ]
     });
 
-    return { steps, tableRows, value: b, polynomial: poly, nestedForm: nested };
+    steps.push({ type: 'iter', title: 'Identidad de la división polinomial',
+      lines: [
+        'Por el teorema de la división:',
+        `P(x) = Q(x) · (x − a) + R`,
+        `P(x) = (${quotientPoly}) · (x − ${x}) + (${this.fmt(residue, 6)})`,
+        `Evaluando en x = ${x}: &nbsp; P(${x}) = Q(${x}) · 0 + R = <strong>${this.fmt(residue, 8)}</strong>`
+      ]
+    });
+
+    /* ────────────────────────────────────────────
+       PASO 8 — Veredicto raíz
+    ──────────────────────────────────────────── */
+    steps.push({
+      type: isRoot ? 'success' : 'info',
+      title: isRoot ? `✓ x = ${x} ES raíz de P(x)` : `x = ${x} NO es raíz de P(x)`,
+      lines: isRoot
+        ? [
+            `R = ${this.fmt(residue, 8)} ≈ 0 → x = ${x} es raíz exacta.`,
+            `P(x) se factoriza como: P(x) = (${quotientPoly}) · (x − ${x})`,
+            `Puedes aplicar Horner nuevamente a Q(x) para encontrar más raíces.`
+          ]
+        : [
+            `R = ${this.fmt(residue, 8)} ≠ 0 → x = ${x} no es raíz.`,
+            `P(${x}) = ${this.fmt(residue, 8)} (el residuo ES el valor de P en x = ${x}).`
+          ]
+    });
+
+    return {
+      steps, tableRows, quotientTerms, quotientPoly,
+      residue, value: residue,
+      polynomial: poly, nestedForm: nested,
+      isRoot, divisionIdentity
+    };
   }
 
   private fmt(v: number, d = 6): string { return Number(v).toFixed(d); }
+
+  private formatTerm(c: number, exp: number): string {
+    if (c === 0) return '';
+    const absC = Math.abs(c);
+    const coefStr = (absC === 1 && exp > 0) ? '' : String(absC);
+    const xStr = exp === 0 ? '' : exp === 1 ? 'x' : `x^${exp}`;
+    return `${coefStr}${xStr}`;
+  }
 
   private formatPolynomial(coeffs: number[], degree: number): string {
     const parts: string[] = [];
